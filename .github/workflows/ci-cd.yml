@@ -1,0 +1,52 @@
+name: CI_CD Pipeline #This is the name of the workflow 
+
+on: # Triggers - tells github when to run the workflow
+  push:
+    branches:[main]
+  pull_request:
+    branches:[main]
+
+permissions: # Define the permissions for the workflow
+  contents: read
+  pages: write # for deployment to github pages
+  id-token: write # for authentication with github pages
+
+jobs:
+  test:
+  runs-on: ubuntu-latest
+  steps:
+    -name: Checkout repository
+     uses: actions/checkout@v4
+
+    -name: Setup Node.js
+     uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    -name: dependencies installation
+     run: npm ci
+
+    -name: Run tests
+     run: npm test
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' #This condition ensures that the deployment job only runs when there is a push event to the main branch.
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{steps.deployment.outputs.page_url}}  # This line sets the URL of the deployed GitHub Pages site as an output variable for the deployment step.
+      steps:
+        -name: Checkout repository
+          uses: actions/checkout@v4
+        -name: Configure Github pages
+          uses: actions/configure-pages@v5
+        -name: upload artifact
+          uses: actions/upload-pages-artifact@v3
+            with:
+              path: 'site'
+
+        -name: Deploy to Github pages
+          id: deployment
+          uses: actions/deploy-pages@v4
+          
